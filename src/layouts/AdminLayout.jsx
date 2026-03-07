@@ -23,6 +23,8 @@ const AdminLayout = () => {
     const { user, logout } = useAuth();
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    debugger;
+    console.log("Loacation pathname",location.pathname)
 
     const navigation = [
         {
