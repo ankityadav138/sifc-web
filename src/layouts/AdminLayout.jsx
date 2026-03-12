@@ -45,24 +45,24 @@ const AdminLayout = () => {
             icon: DocumentTextIcon,
             current: location.pathname === '/reports'
         },
-        {
-            name: 'Analytics',
-            href: '/analytics',
-            icon: ChartBarIcon,
-            current: location.pathname === '/analytics'
-        },
+        // {
+        //     name: 'Analytics',
+        //     href: '/analytics',
+        //     icon: ChartBarIcon,
+        //     current: location.pathname === '/analytics'
+        // },
         {
             name: 'Attendance',
             href: '/attendance',
             icon: ClockIcon,
             current: location.pathname === '/attendance'
         },
-        {
-            name: 'Geo Tracking',
-            href: '/tracking',
-            icon: MapPinIcon,
-            current: location.pathname === '/tracking'
-        },
+        // {
+        //     name: 'Geo Tracking',
+        //     href: '/tracking',
+        //     icon: MapPinIcon,
+        //     current: location.pathname === '/tracking'
+        // },
         {
             name: 'Settings',
             href: '/settings',

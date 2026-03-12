@@ -20,7 +20,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 
 const UserManagement = () => {
-
     const { user } = useAuth();
 
     const [users, setUsers] = useState([]);
@@ -35,8 +34,23 @@ const UserManagement = () => {
     const [userToDelete, setUserToDelete] = useState(null);
     const [showDetails, setShowDetails] = useState(false);
     const [selectedUser, setSelectedUser] = useState(null);
-    const [formType, setFormType] = useState('manager'); // 'manager' or 'tele_caller'
-    const [managers, setManagers] = useState([]); // List of managers for assignment
+    const [formType, setFormType] = useState('manager');
+    const [managers, setManagers] = useState([]);
+
+    // HR modal state
+    const [showHRForm, setShowHRForm] = useState(false);
+    const [editingHR, setEditingHR] = useState(null);
+    const [hrData, setHRData] = useState({
+        name: '',
+        callsMade: '',
+        interviewsScheduled: '',
+        interviewsConducted: '',
+        joinings: '',
+        remarks: ''
+    });
+
+    // HR users list
+    const [hrUsers, setHrUsers] = useState([]);
 
     const [formData, setFormData] = useState({
         name: '',
@@ -45,18 +59,18 @@ const UserManagement = () => {
         role: 'manager',
         territory: '',
         isActive: true,
-        managerId: '', // For assigning tele-caller to manager
-        // For non-super_admin users
+        managerId: '',
         department: '',
         location: '',
         status: 'active'
     });
 
     // Roles based on user permission
-    const roles = user?.role === 'super_admin' 
+    const roles = user?.role === 'super_admin'
         ? [
             { value: 'manager', label: 'Manager', color: 'blue' },
-            { value: 'tele_caller', label: 'Tele-caller', color: 'yellow' }
+            { value: 'tele_caller', label: 'Tele-caller', color: 'yellow' },
+            { value: 'hr', label: 'HR', color: 'green' }
         ]
         : [
             { value: 'admin', label: 'Admin', color: 'purple' },
@@ -70,6 +84,68 @@ const UserManagement = () => {
         { value: 'inactive', label: 'Inactive', color: 'red' }
     ];
 
+    // Tele-caller summary for Super Admin/Manager
+    const telecallerSummary = () => {
+        const telecallers = users.filter(u => u.role === 'tele_caller');
+        let totalCalls = 0, totalFollowUps = 0, totalNotAnswered = 0;
+        telecallers.forEach(tc => {
+            totalCalls += Number(tc.callsMade) || 0;
+            totalFollowUps += Number(tc.followUps) || 0;
+            totalNotAnswered += Number(tc.notAnswered) || 0;
+        });
+        return { totalCalls, totalFollowUps, totalNotAnswered, count: telecallers.length };
+    };
+
+    // HR summary for HR users
+    const hrSummary = () => {
+        let calls = 0, scheduled = 0, conducted = 0, joinings = 0;
+        hrUsers.forEach(hr => {
+            calls += Number(hr.callsMade) || 0;
+            scheduled += Number(hr.interviewsScheduled) || 0;
+            conducted += Number(hr.interviewsConducted) || 0;
+            joinings += Number(hr.joinings) || 0;
+        });
+        return { calls, scheduled, conducted, joinings, count: hrUsers.length };
+    };
+
+    // HR Modal Handlers
+    const openAddHRForm = () => {
+        setEditingHR(null);
+        setHRData({
+            name: '',
+            callsMade: '',
+            interviewsScheduled: '',
+            interviewsConducted: '',
+            joinings: '',
+            remarks: ''
+        });
+        setShowHRForm(true);
+    };
+
+    const handleEditHR = (hr) => {
+        setEditingHR(hr);
+        setHRData(hr);
+        setShowHRForm(true);
+    };
+
+    const handleHRInputChange = (e) => {
+        const { name, value } = e.target;
+        setHRData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleHRSubmit = (e) => {
+        e.preventDefault();
+        if (editingHR) {
+            setHrUsers(hrUsers.map(h => h.id === editingHR.id ? { ...hrData, id: editingHR.id } : h));
+            toast.success('HR User updated successfully');
+        } else {
+            setHrUsers([...hrUsers, { ...hrData, id: Date.now() }]);
+            toast.success('HR User added successfully');
+        }
+        setShowHRForm(false);
+        setEditingHR(null);
+    };
+
     useEffect(() => {
         fetchUsers();
     }, []);
@@ -78,7 +154,6 @@ const UserManagement = () => {
         filterUsers();
     }, [users, searchTerm, selectedRole, selectedStatus]);
 
-    // Extract managers list for assignment dropdown
     useEffect(() => {
         const managersList = users.filter(u => u.role === 'manager');
         setManagers(managersList);
@@ -87,8 +162,6 @@ const UserManagement = () => {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            
-            // Mock data for demonstration
             const mockUsers = [
                 {
                     id: 1,
@@ -102,74 +175,8 @@ const UserManagement = () => {
                     joinDate: '2023-01-15',
                     lastLogin: '2024-01-30T10:30:00Z',
                     avatar: '👨‍💼'
-                },
-                // {
-                //     id: 2,
-                //     name: 'Jane Smith',
-                //     email: 'jane.smith@example.com',
-                //     phone: '+91 9876543211',
-                //     role: 'manager',
-                //     department: 'Sales',
-                //     location: 'Mumbai',
-                //     status: 'active',
-                //     joinDate: '2023-03-20',
-                //     lastLogin: '2024-01-30T09:15:00Z',
-                //     avatar: '👩‍💼'
-                // },
-                // {
-                //     id: 3,
-                //     name: 'Mike Johnson',
-                //     email: 'mike.johnson@example.com',
-                //     phone: '+91 9876543212',
-                //     role: 'hr',
-                //     department: 'Human Resources',
-                //     location: 'Bangalore',
-                //     status: 'active',
-                //     joinDate: '2023-05-10',
-                //     lastLogin: '2024-01-29T14:20:00Z',
-                //     avatar: '👨‍💻'
-                // },
-                // {
-                //     id: 4,
-                //     name: 'Sarah Wilson',
-                //     email: 'sarah.wilson@example.com',
-                //     phone: '+91 9876543213',
-                //     role: 'caller',
-                //     department: 'Telecalling',
-                //     location: 'Pune',
-                //     status: 'active',
-                //     joinDate: '2023-07-25',
-                //     lastLogin: '2024-01-30T11:45:00Z',
-                //     avatar: '👩‍💻'
-                // },
-                // {
-                //     id: 5,
-                //     name: 'David Brown',
-                //     email: 'david.brown@example.com',
-                //     phone: '+91 9876543214',
-                //     role: 'caller',
-                //     department: 'Telecalling',
-                //     location: 'Chennai',
-                //     status: 'inactive',
-                //     joinDate: '2023-09-12',
-                //     lastLogin: '2024-01-25T16:30:00Z',
-                //     avatar: '👨‍💼'
-                // },
-                // {
-                //     id: 6,
-                //     name: 'Emma Davis',
-                //     email: 'emma.davis@example.com',
-                //     phone: '+91 9876543215',
-                //     role: 'caller',
-                //     department: 'Telecalling',
-                //     location: 'Hyderabad',
-                //     status: 'pending',
-                //     joinDate: '2024-01-28',
-                //     lastLogin: null,
-                //     avatar: '👩‍💼'
-                // }
+                }
             ];
-
             setUsers(mockUsers);
         } catch (error) {
             console.error('Failed to fetch users:', error);
@@ -181,7 +188,6 @@ const UserManagement = () => {
 
     const filterUsers = () => {
         let filtered = users;
-
         if (searchTerm) {
             filtered = filtered.filter(user =>
                 user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -189,15 +195,12 @@ const UserManagement = () => {
                 user.phone.includes(searchTerm)
             );
         }
-
         if (selectedRole !== 'all') {
             filtered = filtered.filter(user => user.role === selectedRole);
         }
-
         if (selectedStatus !== 'all') {
             filtered = filtered.filter(user => user.status === selectedStatus);
         }
-
         setFilteredUsers(filtered);
     };
 
@@ -208,19 +211,14 @@ const UserManagement = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
         try {
             if (editingUser) {
-                // Update user
                 const updatedUsers = users.map(user =>
-                    user.id === editingUser.id
-                        ? { ...user, ...formData, id: editingUser.id }
-                        : user
+                    user.id === editingUser.id ? { ...user, ...formData, id: editingUser.id } : user
                 );
                 setUsers(updatedUsers);
                 toast.success('User updated successfully');
             } else {
-                // Add new user
                 const newUser = {
                     ...formData,
                     id: Math.max(...users.map(u => u.id), 0) + 1,
@@ -231,7 +229,6 @@ const UserManagement = () => {
                 setUsers([...users, newUser]);
                 toast.success('User added successfully');
             }
-
             resetForm();
         } catch (error) {
             console.error('Failed to save user:', error);
@@ -256,7 +253,6 @@ const UserManagement = () => {
         setEditingUser(null);
     };
 
-    // Toggle user active status
     const handleToggleStatus = async (userToToggle) => {
         try {
             const updatedUsers = users.map(u =>
@@ -272,7 +268,6 @@ const UserManagement = () => {
         }
     };
 
-    // Open form for adding Manager
     const openAddManagerForm = () => {
         setFormType('manager');
         setFormData({
@@ -291,7 +286,6 @@ const UserManagement = () => {
         setShowForm(true);
     };
 
-    // Open form for adding Tele-caller
     const openAddTelecallerForm = () => {
         setFormType('tele_caller');
         setFormData({
@@ -381,6 +375,50 @@ const UserManagement = () => {
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
+            {/* Tele-caller Summary for Super Admin/Manager */}
+            {(user?.role === 'super_admin' || user?.role === 'manager') && (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="card p-4 text-center">
+                        <div className="text-lg font-bold text-gray-900">Tele-callers</div>
+                        <div className="text-2xl font-semibold text-primary-600">{telecallerSummary().count}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Calls Made Today</div>
+                        <div className="text-xl font-semibold text-green-600">{telecallerSummary().totalCalls}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Follow-ups</div>
+                        <div className="text-xl font-semibold text-blue-600">{telecallerSummary().totalFollowUps}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Not Answered</div>
+                        <div className="text-xl font-semibold text-red-600">{telecallerSummary().totalNotAnswered}</div>
+                    </div>
+                </div>
+            )}
+
+            {/* HR Summary for HR users */}
+            {user?.role === 'hr' && (
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Calls Made</div>
+                        <div className="text-xl font-semibold text-green-600">{hrSummary().calls}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Interviews Scheduled</div>
+                        <div className="text-xl font-semibold text-blue-600">{hrSummary().scheduled}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Interviews Conducted</div>
+                        <div className="text-xl font-semibold text-purple-600">{hrSummary().conducted}</div>
+                    </div>
+                    <div className="card p-4 text-center">
+                        <div className="text-sm text-gray-600">Joinings</div>
+                        <div className="text-xl font-semibold text-primary-600">{hrSummary().joinings}</div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="mb-8">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
@@ -404,6 +442,13 @@ const UserManagement = () => {
                                 <PlusIcon className="w-4 h-4 mr-2" />
                                 Add Tele-caller
                             </button>
+                            <button
+                                onClick={openAddHRForm}
+                                className="btn-secondary inline-flex items-center"
+                            >
+                                <PlusIcon className="w-4 h-4 mr-2" />
+                                Add HR User
+                            </button>
                         </div>
                     ) : (
                         <button
@@ -417,10 +462,79 @@ const UserManagement = () => {
                 </div>
             </div>
 
+            {/* HR Users List for Super Admin */}
+            {user?.role === 'super_admin' && hrUsers.length > 0 && (
+                <div className="card p-6 mb-6">
+                    <h2 className="text-lg font-bold mb-4">HR Users</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm">
+                            <thead>
+                                <tr className="bg-gray-50">
+                                    <th className="px-4 py-2 text-left">Name</th>
+                                    <th className="px-4 py-2 text-left">Calls Made</th>
+                                    <th className="px-4 py-2 text-left">Interviews Scheduled</th>
+                                    <th className="px-4 py-2 text-left">Interviews Conducted</th>
+                                    <th className="px-4 py-2 text-left">Joinings</th>
+                                    <th className="px-4 py-2 text-left">Remarks</th>
+                                    <th className="px-4 py-2 text-left">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {hrUsers.map((hr) => (
+                                    <tr key={hr.id} className="border-t hover:bg-gray-50">
+                                        <td className="px-4 py-2">{hr.name}</td>
+                                        <td className="px-4 py-2">{hr.callsMade}</td>
+                                        <td className="px-4 py-2">{hr.interviewsScheduled}</td>
+                                        <td className="px-4 py-2">{hr.interviewsConducted}</td>
+                                        <td className="px-4 py-2">{hr.joinings}</td>
+                                        <td className="px-4 py-2">{hr.remarks}</td>
+                                        <td className="px-4 py-2">
+                                            <button
+                                                onClick={() => handleEditHR(hr)}
+                                                className="text-blue-600 hover:underline mr-2"
+                                            >
+                                                Edit
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* Telecaller List for Super Admin */}
+            {user?.role === 'super_admin' && users.filter(u => u.role === 'tele_caller').length > 0 && (
+                <div className="card p-6 mb-6">
+                    <h2 className="text-lg font-bold mb-4">Tele-callers</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {users.filter(u => u.role === 'tele_caller').map((tc) => (
+                            <div key={tc.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div className="flex justify-between items-start mb-2">
+                                    <h3 className="font-semibold text-gray-900">{tc.name}</h3>
+                                    <button
+                                        onClick={() => handleEdit(tc)}
+                                        className="text-gray-400 hover:text-blue-600"
+                                    >
+                                        <PencilIcon className="w-4 h-4" />
+                                    </button>
+                                </div>
+                                <div className="text-sm text-gray-600 space-y-1">
+                                    <div>Calls Made Today: <span className="font-medium">{tc.callsMade || 0}</span></div>
+                                    <div>Follow-ups: <span className="font-medium">{tc.followUps || 0}</span></div>
+                                    <div>Not Answered: <span className="font-medium">{tc.notAnswered || 0}</span></div>
+                                    <div>Last Update: <span className="font-medium">{tc.lastUpdate || 'N/A'}</span></div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Filters */}
             <div className="card p-6 mb-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0 lg:space-x-4">
-                    {/* Search */}
                     <div className="relative flex-1 max-w-md">
                         <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <input
@@ -431,8 +545,6 @@ const UserManagement = () => {
                             className="input-field pl-10"
                         />
                     </div>
-                    
-                    {/* Filters */}
                     <div className="flex space-x-4">
                         <select
                             value={selectedRole}
@@ -444,7 +556,6 @@ const UserManagement = () => {
                                 <option key={role.value} value={role.value}>{role.label}</option>
                             ))}
                         </select>
-                        
                         <select
                             value={selectedStatus}
                             onChange={(e) => setSelectedStatus(e.target.value)}
@@ -486,7 +597,6 @@ const UserManagement = () => {
                                 >
                                     <PencilIcon className="w-4 h-4" />
                                 </button>
-                                {/* Activate/Deactivate Toggle */}
                                 <button
                                     onClick={() => handleToggleStatus(filteredUser)}
                                     className={`p-1 transition-colors ${
@@ -496,7 +606,7 @@ const UserManagement = () => {
                                     }`}
                                     title={filteredUser.isActive !== false && filteredUser.status !== 'inactive' ? 'Deactivate' : 'Activate'}
                                 >
-                                    {filteredUser.isActive !== false && filteredUser.status !== 'inactive' 
+                                    {filteredUser.isActive !== false && filteredUser.status !== 'inactive'
                                         ? <CheckIcon className="w-4 h-4" />
                                         : <XMarkIcon className="w-4 h-4" />
                                     }
@@ -527,7 +637,6 @@ const UserManagement = () => {
                                 <MapPinIcon className="w-4 h-4 mr-2" />
                                 {filteredUser.territory || filteredUser.location}
                             </div>
-                            {/* Show assigned manager for tele-callers */}
                             {filteredUser.managerId && (
                                 <div className="flex items-center text-sm text-gray-600">
                                     <UserIcon className="w-4 h-4 mr-2" />
@@ -542,7 +651,7 @@ const UserManagement = () => {
                                 <StatusBadge status={filteredUser.isActive === false ? 'inactive' : filteredUser.status || 'active'} />
                             </div>
                             <div className="text-xs text-gray-500">
-                                {filteredUser.lastLogin 
+                                {filteredUser.lastLogin
                                     ? new Date(filteredUser.lastLogin).toLocaleDateString()
                                     : 'Never logged in'
                                 }
@@ -566,21 +675,17 @@ const UserManagement = () => {
                     <div className="card max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="text-xl font-semibold text-gray-900">
-                                {editingUser 
-                                    ? `Edit ${formType === 'manager' ? 'Manager' : 'Tele-caller'}` 
+                                {editingUser
+                                    ? `Edit ${formType === 'manager' ? 'Manager' : 'Tele-caller'}`
                                     : `Add ${formType === 'manager' ? 'Manager' : 'Tele-caller'}`
                                 }
                             </h3>
-                            <button
-                                onClick={resetForm}
-                                className="text-gray-400 hover:text-gray-600"
-                            >
+                            <button onClick={resetForm} className="text-gray-400 hover:text-gray-600">
                                 <XMarkIcon className="w-5 h-5" />
                             </button>
                         </div>
 
                         <form onSubmit={handleSubmit} className="space-y-4">
-                            {/* Super Admin Form - Manager/Tele-caller */}
                             {user?.role === 'super_admin' ? (
                                 <>
                                     <div>
@@ -595,7 +700,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                         <input
@@ -608,7 +712,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                         <input
@@ -621,7 +724,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Territory / Team</label>
                                         <input
@@ -634,8 +736,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
-                                    {/* Assign Manager - Only for Tele-caller */}
                                     {formType === 'tele_caller' && (
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-1">Assign to Manager</label>
@@ -655,7 +755,6 @@ const UserManagement = () => {
                                             </select>
                                         </div>
                                     )}
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Active Status</label>
                                         <div className="flex items-center space-x-4 mt-2">
@@ -663,7 +762,6 @@ const UserManagement = () => {
                                                 <input
                                                     type="radio"
                                                     name="isActive"
-                                                    value="true"
                                                     checked={formData.isActive === true}
                                                     onChange={() => setFormData(prev => ({ ...prev, isActive: true }))}
                                                     className="form-radio h-4 w-4 text-primary-600"
@@ -674,7 +772,6 @@ const UserManagement = () => {
                                                 <input
                                                     type="radio"
                                                     name="isActive"
-                                                    value="false"
                                                     checked={formData.isActive === false}
                                                     onChange={() => setFormData(prev => ({ ...prev, isActive: false }))}
                                                     className="form-radio h-4 w-4 text-red-600"
@@ -685,7 +782,6 @@ const UserManagement = () => {
                                     </div>
                                 </>
                             ) : (
-                                /* Default Form for other roles */
                                 <>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
@@ -698,7 +794,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                                         <input
@@ -710,7 +805,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Phone</label>
                                         <input
@@ -722,7 +816,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
                                         <select
@@ -737,7 +830,6 @@ const UserManagement = () => {
                                             ))}
                                         </select>
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
                                         <input
@@ -749,7 +841,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
                                         <input
@@ -761,7 +852,6 @@ const UserManagement = () => {
                                             required
                                         />
                                     </div>
-
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
                                         <select
@@ -781,14 +871,110 @@ const UserManagement = () => {
 
                             <div className="flex space-x-3 pt-4">
                                 <button type="submit" className="btn-primary flex-1">
-                                    {editingUser 
-                                        ? `Update ${formType === 'manager' ? 'Manager' : 'Tele-caller'}` 
+                                    {editingUser
+                                        ? `Update ${formType === 'manager' ? 'Manager' : 'Tele-caller'}`
                                         : `Add ${formType === 'manager' ? 'Manager' : 'Tele-caller'}`
                                     }
                                 </button>
+                                <button type="button" onClick={resetForm} className="btn-secondary flex-1">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* HR Modal */}
+            {showHRForm && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="card max-w-md w-full p-6 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-center justify-between mb-6">
+                            <h3 className="text-xl font-semibold text-gray-900">
+                                {editingHR ? 'Edit HR User' : 'Add HR User'}
+                            </h3>
+                            <button
+                                onClick={() => { setShowHRForm(false); setEditingHR(null); }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <XMarkIcon className="w-5 h-5" />
+                            </button>
+                        </div>
+                        <form onSubmit={handleHRSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                                <input
+                                    type="text"
+                                    name="name"
+                                    value={hrData.name}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    placeholder="Enter HR user name"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">No. of Calls Made</label>
+                                <input
+                                    type="number"
+                                    name="callsMade"
+                                    value={hrData.callsMade}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">No. of Interviews Scheduled</label>
+                                <input
+                                    type="number"
+                                    name="interviewsScheduled"
+                                    value={hrData.interviewsScheduled}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">No. of Interviews Conducted</label>
+                                <input
+                                    type="number"
+                                    name="interviewsConducted"
+                                    value={hrData.interviewsConducted}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">No. of Joinings</label>
+                                <input
+                                    type="number"
+                                    name="joinings"
+                                    value={hrData.joinings}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Remarks / Follow-up Notes</label>
+                                <textarea
+                                    name="remarks"
+                                    value={hrData.remarks}
+                                    onChange={handleHRInputChange}
+                                    className="input-field"
+                                    rows="3"
+                                    required
+                                />
+                            </div>
+                            <div className="flex space-x-3 pt-4">
+                                <button type="submit" className="btn-primary flex-1">
+                                    {editingHR ? 'Update HR User' : 'Add HR User'}
+                                </button>
                                 <button
                                     type="button"
-                                    onClick={resetForm}
+                                    onClick={() => { setShowHRForm(false); setEditingHR(null); }}
                                     className="btn-secondary flex-1"
                                 >
                                     Cancel
@@ -864,7 +1050,6 @@ const UserManagement = () => {
                                 <span className="text-gray-600">Territory / Team:</span>
                                 <span className="font-medium">{selectedUser.territory || selectedUser.location}</span>
                             </div>
-                            {/* Show assigned manager for tele-callers */}
                             {selectedUser.managerId && (
                                 <div className="flex items-center justify-between">
                                     <span className="text-gray-600">Assigned Manager:</span>
@@ -890,7 +1075,7 @@ const UserManagement = () => {
                             <div className="flex items-center justify-between">
                                 <span className="text-gray-600">Last Login:</span>
                                 <span className="font-medium">
-                                    {selectedUser.lastLogin 
+                                    {selectedUser.lastLogin
                                         ? new Date(selectedUser.lastLogin).toLocaleDateString()
                                         : 'Never'
                                     }

@@ -63,7 +63,7 @@ const Settings = () => {
         { id: 'general', label: 'General', icon: CogIcon },
         { id: 'notifications', label: 'Notifications', icon: BellIcon },
         { id: 'security', label: 'Security', icon: ShieldCheckIcon },
-        { id: 'integration', label: 'Integration', icon: CircleStackIcon },
+        // { id: 'integration', label: 'Integration', icon: CircleStackIcon },
     ];
 
     return (
@@ -202,9 +202,9 @@ const Settings = () => {
                                         {[
                                             { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive important updates via email' },
                                             { key: 'pushNotifications', label: 'Push Notifications', description: 'Get instant notifications in your browser' },
-                                            { key: 'smsAlerts', label: 'SMS Alerts', description: 'Receive critical alerts via SMS' },
-                                            { key: 'weeklyReports', label: 'Weekly Reports', description: 'Get weekly performance summaries' },
-                                            { key: 'realTimeAlerts', label: 'Real-time Alerts', description: 'Immediate notifications for urgent events' }
+                                            // { key: 'smsAlerts', label: 'SMS Alerts', description: 'Receive critical alerts via SMS' },
+                                            // { key: 'weeklyReports', label: 'Weekly Reports', description: 'Get weekly performance summaries' },
+                                            // { key: 'realTimeAlerts', label: 'Real-time Alerts', description: 'Immediate notifications for urgent events' }
                                         ].map((item) => (
                                             <div key={item.key} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                                 <div>
